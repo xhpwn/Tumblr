@@ -12,7 +12,9 @@ import AlamofireImage
 class PhotosViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
     
     var posts: [[String: Any]] = []
-
+    var refreshControl: UIRefreshControl!
+    @IBOutlet weak var refreshingIndicator: UIActivityIndicatorView!
+    
     @IBOutlet weak var tableView: UITableView!
     
     override func viewDidLoad() {
@@ -21,6 +23,24 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
         tableView.delegate = self
         tableView.dataSource = self
 
+        refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(PhotosViewController.didPullToRefresh(_:)), for: .valueChanged)
+        tableView.insertSubview(refreshControl, at: 0)
+        
+        fetchImages()
+        
+    }
+    
+    @objc func didPullToRefresh(_ refreshControl: UIRefreshControl) {
+        fetchImages()
+    }
+    
+    func fetchImages() {
+        
+        
+        self.tableView.isHidden = true;
+        self.refreshingIndicator.startAnimating()
+        
         // Network request snippet
         let url = URL(string: "https://api.tumblr.com/v2/blog/humansofnewyork.tumblr.com/posts/photo?api_key=Q6vHoaVm5L1u2ZAW1fqv3Jw48gFzYVg9P0vH0VHl3GVy6quoGV")!
         let session = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue.main)
@@ -38,9 +58,14 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
                 
                 // TODO: Reload the table view
                 self.tableView.reloadData()
+            
+                self.refreshingIndicator.stopAnimating()
+                self.refreshControl.endRefreshing()
+                self.tableView.isHidden = false;
             }
         }
         task.resume()
+        
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -49,6 +74,7 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "PhotoCell", for: indexPath as IndexPath) as! PhotoCell
+        cell.selectionStyle = .none
         
         // Configure YourCustomCell using the outlets that you've defined.
         let post = posts[indexPath.row]
